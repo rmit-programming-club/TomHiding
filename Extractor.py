@@ -1,40 +1,39 @@
 from PIL import Image
 
 
-def im2bin (im):
-    return list(im.getdata())
+if __name__ == "__main__":
+    hidden = Image.open("result.png")
+    dimensions = Image.open("mini_tom.png").size
 
-def bin2im (array, sizeX, sizeY):
-    im = Image.new("RGB", (sizeX, sizeY))
-    im.putdata(array)
-    return im
+    result_data = []
 
-def unbinify(binArray):
-    result = []
-    for pixel_index in range(0, len(binArray), 12):
-        pixel = binArray[pixel_index: pixel_index + 12]
-        pixel_value_list = []
-        for value_index in range(0, 12, 4):
-            value = pixel[value_index:value_index + 4]
-            pixel_value_list.append(value[0] + (value[1] << 2) + (value[2] << 4) + (value[3] << 6))
-        result.append(tuple(pixel_value_list))
-    return result
+    i = 0
+    rgb_tuple = []
+    value_elements = []
+    for pixel in hidden.getdata():
+        # Do the rest of the pixels contain no message?
+        if i >= dimensions[1] * dimensions[1] * 4:
+            break
+        
+        # Get the data at the end of the pixel
+        for value in pixel:
+            message = value % 4
+            value_elements.append(message)
+        
+            # If we have enough for a RGB Value, place it in the tuple
+            if len(value_elements) == 4:
+                rgb_tuple.append(value_elements[0] + (value_elements[1] << 2) + (value_elements[2] << 4) + (value_elements[3] << 6))
+                value_elements = []
 
-hidden = Image.open("result.png")
-dimensions = Image.open("mini_tom.png").size
+            # If we have enough for a pixel, add it to the end data
+            if len(rgb_tuple) == 3:
+                result_data.append(tuple(rgb_tuple))
+                rgb_tuple = []
 
-hidden_data = im2bin(hidden)
+        i += 1
 
-print("Retreiving")
+    result_image = Image.new("RGB", dimensions)
+    result_image.putdata(result_data)
+    result_image.save("back.png")
 
-message = []
-for pixel in hidden_data:
-    for value in pixel:
-        message.append(value % 4)
-
-print("Opened files")
-bin_hiding = unbinify(message)[:dimensions[0] * dimensions[1]]
-
-result = bin2im(bin_hiding, dimensions[0], dimensions[1])
-result.save("back.png", "PNG")
-print("Success")
+    print("Success")
